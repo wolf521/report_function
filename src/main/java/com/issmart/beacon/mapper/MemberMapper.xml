@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Dao 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.issmart.beacon.dao.MemberMapper">
+	<resultMap id="modelMap" type="Member">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="member_name" property="memberName" />
+	</resultMap>
+	<sql id="modelColumns">
+		id, member_id, contact_id, attendee_id, unit_id,
+		beacon_mac, member_name, wechat_head_img_url, company_name,
+		postion_code, industry, city
+	</sql>
+	<select id="getBeaconMacArrayToString" resultType="String">
+		select
+		group_concat(beacon_mac) AS beaconMacs
+		from
+		tb_cm_member
+		where
+		unit_id =
+		#{unitId} AND enable = '1'
+		group by unit_id;
+	</select>
+
+	<select id="findById" resultMap="modelMap">
+		select
+		<include refid="modelColumns"></include>
+		from
+		tb_cm_member
+		where
+		id = 1;
+	</select>
+
+	<delete id="deleteByUnitId">
+		DELETE FROM
+		tb_cm_member
+		WHERE
+		unit_id = #{unitId}
+	</delete>
+
+	<insert id="inserts">
+		INSERT INTO
+		tb_cm_member
+		(member_id, contact_id, unit_id,
+		beacon_mac,beacon_id, member_name, 
+		wechat_head_img_url, company_name,
+		postion_code, industry, city)
+		VALUES
+		<foreach item="item" index="index" collection="list"
+			separator=",">
+			(#{item.memberId}, #{item.contactId}, #{unitId},
+			#{item.beaconMac}, #{item.beaconId}, #{item.memberName},
+			#{item.wechatHeadImgUrl}, #{item.companyName}, #{item.postionCode},
+			#{item.industry}, #{item.city})
+		</foreach>
+	</insert>
+
+	<update id="updateMap">
+		UPDATE
+		tb_cm_member
+		<set>
+			<if test="beaconId != null and beaconId != ''">
+				beacon_id = #{beaconId},
+			</if>
+			<if test="beaconMac != null and beaconMac != ''">
+				beacon_mac = #{beaconMac},
+			</if>
+			<if test="memberName != null and memberName != ''">
+				member_name = #{memberName},
+			</if>
+			<if test="wechatHeadImgUrl != null and wechatHeadImgUrl != ''">
+				wechat_head_img_url = #{wechatHeadImgUrl},
+			</if>
+			<if test="companyName != null and companyName != ''">
+				company_name = #{companyName},
+			</if>
+			<if test="postionCode != null and postionCode != ''">
+				postion_code = #{postionCode},
+			</if>
+			<if test="industry != null and industry != ''">
+				industry = #{industry},
+			</if>
+			<if test="city != null and city != ''">
+				city = #{city},
+			</if>
+			last_updated_time = NOW()
+		</set>
+		WHERE
+		unit_id = #{unitId} AND member_id = #{memberId}
+	</update>
+
+	<insert id="insertMap">
+		INSERT INTO
+		tb_cm_member
+		<set>
+			<if test="memberId != null and memberId != ''">
+				member_id = #{memberId},
+			</if>
+			<if test="contactId != null and contactId != ''">
+				contact_id = #{contactId},
+			</if>
+			<if test="attendeeId != null and attendeeId != ''">
+				attendee_id = #{attendeeId},
+			</if>
+			<if test="unitId != null and unitId != ''">
+				unit_id = #{unitId},
+			</if>
+			<if test="beaconMac != null and beaconMac != ''">
+				beacon_mac = #{beaconMac},
+			</if>
+			<if test="beaconId != null and contactId != ''">
+				beacon_id = #{beaconId},
+			</if>
+			<if test="memberName != null and memberName != ''">
+				member_name = #{memberName},
+			</if>
+			<if test="wechatHeadImgUrl != null and wechatHeadImgUrl != ''">
+				wechat_head_img_url = #{wechatHeadImgUrl},
+			</if>
+			<if test="companyName != null and companyName != ''">
+				company_name = #{companyName},
+			</if>
+			<if test="postionCode != null and postionCode != ''">
+				postion_code = #{postionCode},
+			</if>
+			<if test="industry != null and industry != ''">
+				industry = #{industry},
+			</if>
+			<if test="city != null and city != ''">
+				city = #{city}
+			</if>
+		</set>
+	</insert>
+
+	<select id="getBoothPeopleNearby" resultType="Map">
+		SELECT
+		m.member_id AS memberId
+		, m.member_name AS memberName
+		, m.wechat_head_img_url AS
+		wechatHeadImgUrl
+		, m.company_name AS companyName
+		, m.postion_code AS
+		postionCode
+		, m.industry
+		, m.city
+		FROM
+		tb_cm_member m
+		WHERE
+		m.unit_id = #{unitId}
+		AND m.beacon_mac in(
+		SELECT
+		distinct wbc.beacon_mac
+		FROM
+		tb_wa_beacon_calculate AS wbc
+		WHERE
+		wbc.unit = #{unitId}
+		AND wbc.device_mac = #{deviceMac}
+		AND wbc.window_start > date_sub(now(),
+		interval #{radarTime} minute) AND wbc.window_start &lt;= now()
+		AND wbc.rssi &lt;= #{radarRssi});
+	</select>
+
+	<select id="getMemberBeaconMacs" resultType="String">
+		SELECT
+		DISTINCT beacon_mac
+		FROM
+		tb_cm_member
+		WHERE
+		unit_id = #{unitId} AND enable = '1';
+	</select>
+</mapper>

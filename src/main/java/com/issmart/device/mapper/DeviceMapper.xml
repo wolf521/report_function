@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.issmart.device.dao.DeviceMapper">
+	<resultMap id="BaseResultMap" type="DeviceBaseInfo">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="booth_name" property="boothName" jdbcType="VARCHAR" />
+		<result column="event_id" property="eventId" jdbcType="INTEGER" />
+		<result column="unitId" property="unitId" jdbcType="VARCHAR" />
+		<result column="rssi" property="rssi" jdbcType="INTEGER" />
+		<result column="booth_type" property="boothType" jdbcType="VARCHAR" />
+		<result column="booth_id" property="boothId" jdbcType="INTEGER" />
+		<result column="device_name" property="deviceName" jdbcType="VARCHAR" />
+		<result column="device_booth" property="deviceBooth" jdbcType="VARCHAR" />
+		<result column="device_status" property="deviceStatus"
+			jdbcType="VARCHAR" />
+		<result column="device_address" property="deviceAddress"
+			jdbcType="VARCHAR" />
+		<result column="device_mac" property="deviceMac" jdbcType="VARCHAR" />
+		<result column="device_x" property="deviceX" jdbcType="INTEGER" />
+		<result column="device_y" property="deviceY" jdbcType="INTEGER" />
+		<result column="device_z" property="deviceZ" jdbcType="INTEGER" />
+		<result column="created_time" property="time" jdbcType="DATE" />
+		<result column="duration" property="duration" jdbcType="INTEGER" />
+		<result column="bemberTotal" property="bemberTotal" jdbcType="INTEGER" />
+		<result column="realMemberTotal" property="realMemberTotal"
+			jdbcType="INTEGER" />
+		<result column="durationAvg" property="durationAvg" jdbcType="INTEGER" />
+		<result column="msgSendTotal" property="msgSendTotal" jdbcType="INTEGER" />
+		<result column="deviceMmac" property="deviceMmac" jdbcType="VARCHAR" />
+		<result column="beaconMac" property="beaconMac" jdbcType="VARCHAR" />
+		<result column="calculateTimeStamp" property="calculateTimeStamp" jdbcType="BIGINT" />
+	</resultMap>
+	
+	<select id="queryTablePartitionInfo" resultType="String">
+		SELECT
+	    partition_name
+		FROM information_schema.PARTITIONS
+		WHERE TABLE_NAME=#{tableName}
+		ORDER BY partition_name 
+	</select>
+	
+	<select id="queryPermissionLevel" resultType="String">
+		SELECT permission_level FROM tb_report_permission
+		WHERE unit_id = #{unitId}
+	</select>
+	
+	<select id="queryBoothIndex" resultType="Map">
+		select
+		ifnull(MAX(booth_total),0) as boothTotal,
+	  	ifnull(MAX(booth_member_total),0) as boothMemberTotal,
+		ifnull(MAX(booth_stay_time_avg),0) as boothstayTimeAvg
+		from tb_report_visit_log_booth_result
+		where unit_id = #{unitId}
+	</select>
+	
+	<select id="getRealMemberNumber" resultType="Integer">
+		select count(DISTINCT c.beacon_mac) as count
+		from tb_wa_beacon_calculate c
+		INNER JOIN tb_cm_member m ON c.unit = m.unit_id AND c.beacon_mac = m.beacon_mac
+		INNER JOIN tb_wa_booth b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
+		where c.unit = #{unitId}
+		<if test="boothId != null">
+		AND b.booth_id = #{boothId}
+		</if>
+		and UNIX_TIMESTAMP(window_end) BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		and c.rssi &lt;= b.rssi
+	</select>
+	
+	<select id="queryBestDrainage" resultType="Map">
+		select booth_name as name,
+		bember_total as value
+		from tb_report_visit_log_booth_result
+		where unit_id = #{unitId}
+		ORDER BY value DESC
+		LIMIT 0,3
+	</select>
+	
+	<select id="queryBestAttract" resultType="Map">
+		select booth_name as name,
+		duration_avg as value
+		from tb_report_visit_log_booth_result
+		where unit_id = #{unitId}
+		ORDER BY value DESC
+		LIMIT 0,3
+	</select>
+	
+	<select id="queryBestActive" resultType="Map">
+		select b.booth_name as name,count(log.beacon_mac) as value
+		from tb_wa_booth b 
+		LEFT JOIN tb_sys_behavior_log log ON log.device_mac = b.device_mac and log.unit_id = b.unit_id AND log.behavior_id = 1
+		where b.unit_id = #{unitId}
+		GROUP BY name
+		ORDER BY value DESC
+		LIMIT 0,3
+	</select>
+	
+	<select id="queryDeviceHot" resultMap="BaseResultMap">
+		select unit_id as
+		unitId,device_mac,device_name,device_address,booth_id,
+		booth_name,duration,bember_total as bemberTotal,duration_avg as durationAvg,
+		real_member_total as realMemberTotal
+		from tb_report_visit_log_booth_result
+		where unit_id = #{unitId}
+		ORDER BY
+		bember_total DESC,duration DESC,duration_avg DESC,real_member_total DESC
+		<if test="pageNo != null and pageSize != null">
+		limit #{pageNo},#{pageSize}
+		</if>
+	</select>
+	
+	<select id="queryBemberTotalByBoothId" resultMap="BaseResultMap">
+		select bo.booth_id as booth_id, COUNT(DISTINCT log.beacon_mac) as bemberTotal
+		from tb_wa_booth bo 
+		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
+		where log.unit_id = #{unitId}
+		<if test="boothId != null and boothId != ''">
+		 and bo.booth_id = #{boothId}
+		</if>
+		GROUP BY bo.booth_id
+	</select>
+	
+	<select id="queryVisitLogByBoothId" resultMap="BaseResultMap">
+		select DISTINCT log.device_mac as deviceMac,log.beacon_mac as beaconMac,log.calculate_time_stamp
+		as calculateTimeStamp,bo.booth_id as booth_id
+		from tb_wa_booth bo 
+		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
+		where bo.unit_id = #{unitId}
+		and bo.booth_id in
+		<foreach collection="boothIdLists" item="boothId" open="(" separator="," close=")">
+			#{boothId}
+		</foreach>
+		ORDER BY log.device_mac,log.beacon_mac,log.calculate_time
+	</select>
+	
+	<select id="queryBoothIds" resultType="Integer">
+		select DISTINCT booth_id
+		from tb_wa_booth
+		where unit_id = #{unitId}
+	</select>
+
+	<select id="getTotal" resultType="Integer">
+		select
+		COUNT(DISTINCT booth_id)
+		from tb_report_visit_log_booth_result
+		where unit_id = #{unitId}
+	</select>
+
+	<select id="querySingleBoothInfo" resultType="Map">
+		SELECT booth_name as boothName,
+		     device_address as boothLocation, 
+			 duration as boothRealMemberTotal,
+			 bember_total as boothMemberTotal,
+			 duration_avg as boothstayTimeAvg 
+		FROM tb_report_visit_log_booth_result 
+		WHERE unit_id = #{unitId}
+		AND booth_id = #{boothId}
+	</select>
+
+	<select id="queryTrendChart" resultType="Map">
+		select
+		DATE_FORMAT(calculate_time,'%H:%i') as time,
+		count(beacon_mac) as count
+		from
+		${tableName} PARTITION (${partitionName})
+		where unit_id = #{unitId}
+		and device_mac = #{deviceMac}
+		and calculate_time_stamp BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		Group by calculate_time
+		Order by calculate_time
+	</select>
+
+	<select id="queryDistributeChartByPosition" resultType="Map">
+		select postion_code,
+		COUNT(DISTINCT log.beacon_mac) as count
+		from tb_cm_member m
+		INNER
+		JOIN ${tableName} PARTITION (${partitionName}) log ON m.beacon_mac = log.beacon_mac AND
+		m.unit_id = log.unit_id
+		where log.unit_id = #{unitId}
+		and log.device_mac = #{deviceMac}
+		and postion_code is not null
+		and calculate_time_stamp BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		GROUP BY postion_code
+	</select>
+
+	<select id="queryDistributeChartByCity" resultType="Map">
+		select city,
+		COUNT(DISTINCT log.beacon_mac) as count
+		from tb_cm_member m
+		INNER JOIN
+		${tableName} PARTITION (${partitionName}) log ON m.beacon_mac = log.beacon_mac AND
+		m.unit_id = log.unit_id
+		where log.unit_id = #{unitId}
+		and log.device_mac = #{deviceMac}
+		and city is not null
+		and calculate_time_stamp BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		GROUP BY city
+	</select>
+
+	<select id="queryDistributeChartByIndustry" resultType="Map">
+		select industry,
+		COUNT(DISTINCT log.beacon_mac) as count
+		from tb_cm_member m
+		INNER JOIN
+		${tableName} PARTITION (${partitionName}) log ON m.beacon_mac = log.beacon_mac AND
+		m.unit_id = log.unit_id
+		where log.unit_id = #{unitId}
+		and log.device_mac = #{deviceMac}
+		and industry is not null
+		and calculate_time_stamp BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		GROUP BY industry
+	</select>
+
+	<select id="queryActiveList" resultType="Map">
+		select
+		member_id as memberId,
+		contact_id as contactId,
+		log.unit_id as unitId,
+		log.beacon_mac
+		as beaconMac,
+		member_name as memberName,
+		wechat_head_img_url as
+		wechatHeadImgUrl,
+		company_name as companyName,
+		postion_code as
+		postionCode,
+		industry,
+		city as region,
+		count(log.beacon_mac) as duration
+		from ${tableName} PARTITION (${partitionName}) log
+		INNER JOIN tb_cm_member m ON m.beacon_mac = log.beacon_mac AND m.unit_id =
+		log.unit_id
+		where log.unit_id = #{unitId}
+		and log.device_mac = #{deviceMac}
+		and calculate_time_stamp BETWEEN #{startTimeStamp} AND #{endTimeStamp}
+		GROUP BY log.beacon_mac
+		Order by duration DESC
+	</select>
+	
+	<select id="querySingleBoothRealTimeVisotor" resultType="Integer">
+		select count(DISTINCT c.beacon_mac) as count
+		from tb_wa_beacon_calculate c
+		INNER JOIN tb_cm_member m ON c.unit = m.unit_id AND c.beacon_mac = m.beacon_mac
+		INNER JOIN tb_wa_booth b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
+		where c.unit = #{unitId}
+		and c.device_mac = #{deviceMac}
+		and UNIX_TIMESTAMP(window_end) &gt;= #{startTimeStamp}
+		and c.rssi &lt;= b.rssi
+	</select>
+	
+	<select id="queryDeviceMacs" resultType="String">
+		select device_mac
+		from tb_wa_booth
+		WHERE booth_id = #{boothId}
+	</select>
+</mapper>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.issmart.device.dao.DeviceConfigMapper">
+
+	<insert id="createTable">
+		CREATE TABLE ${tableName} (
+		`id` int(11) NOT NULL AUTO_INCREMENT,
+		`unit_id` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		`device_mac` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		`beacon_mac` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		`calculate_time` datetime DEFAULT CURRENT_TIMESTAMP,
+		`calculate_time_stamp` int(15) DEFAULT NULL,
+		`rssi` int(11) DEFAULT NULL,
+		`time_minute` int(11) DEFAULT NULL,
+		`created_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		PRIMARY KEY (`id`,`calculate_time`),
+		KEY `INDEX` (`unit_id`,`device_mac`,`beacon_mac`,`calculate_time_stamp`)
+		USING BTREE
+		) ENGINE=InnoDB AUTO_INCREMENT=54999884 DEFAULT
+		CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+		PARTITION BY RANGE
+		(to_days(calculate_time))
+		(
+		<foreach collection="partitionList" item="item">
+			PARTITION
+			${item.name} VALUES LESS THAN (to_days(#{item.time})) ENGINE =
+			InnoDB,
+		</foreach>
+		PARTITION pend VALUES less than maxvalue
+		);
+	</insert>
+	
+	<select id="queryPartitionName" resultType="String">
+		SELECT partition_name
+		FROM information_schema.PARTITIONS
+		WHERE TABLE_NAME = #{tableName}
+		ORDER BY partition_name
+	</select>
+	
+	<select id="queryPermissionLevel" resultType="String">
+		SELECT permission_level from tb_report_permission
+		where unit_id = #{unitId}
+	</select>
+	
+	<insert id="insertPermissionLevel">
+		insert into tb_report_permission (unit_id,permission_level)
+		values(#{unitId},#{permissionLevel})
+	</insert>
+
+	<insert id="insertEventTemplate">
+		insert into
+		tb_event_template(event_id,unit_id,start_time,end_time,status) values(
+		#{eventId},#{unitId},#{startTimeStamp},#{endTimeStamp},'on'
+		)
+	</insert>
+
+	<delete id="deleteEventTemplate">
+		delete from tb_event_template
+		where unit_id =
+		#{unitId}
+	</delete>
+
+	<select id="selectDeviceBoothRelation" resultType="Integer">
+		SELECT
+		booth_id FROM tb_wa_booth
+		WHERE unit_id = #{unitId}
+		AND device_mac =
+		#{deviceMac}
+	</select>
+	
+	<insert id="insertDeviceBoothRelation">
+		insert into tb_wa_booth
+		(unit_id,booth_id,device_mac,rssi,device_name,booth_name,
+		booth_exhibitor_name,booth_exhibitor_logo,booth_location,coords_x,coords_y,coords_z,
+		booth_type,booth_type_name,label)
+		values(#{unitId},#{boothId},#{deviceMac},#{rssi},#{deviceName}
+		,#{boothName},#{boothExhibitorName},#{boothExhibitorLogo},#{boothLocation},#{coordsX},
+		#{coordsY},#{coordsZ},#{boothType},#{boothTypeName},#{label})
+	</insert>
+	
+	<update id="updateDeviceBoothRelation">
+		update tb_wa_booth
+		set
+		<if test="boothId != null and boothId != ''">
+			booth_id = #{boothId},
+		</if>
+		<if test="rssi != null and rssi != ''">
+			rssi = #{rssi},
+		</if>
+		<if test="deviceName != null and deviceName != ''">
+			device_name = #{deviceName},
+		</if>
+		<if test="boothName != null and boothName != ''">
+			booth_name = #{boothName},
+		</if>
+		<if test="boothExhibitorName != null and boothExhibitorName != ''">
+			booth_exhibitor_name = #{boothExhibitorName},
+		</if>
+		<if test="boothExhibitorLogo != null and boothExhibitorLogo != ''">
+			booth_exhibitor_logo = #{boothExhibitorLogo},
+		</if>
+		<if test="boothLocation != null and boothLocation != ''">
+			booth_location = #{boothLocation},
+		</if>
+		<if test="coordsX != null and coordsX != ''">
+			coords_x = #{coordsX},
+		</if>
+		<if test="coordsY != null and coordsY != ''">
+			coords_y = #{coordsY},
+		</if>
+		<if test="coordsZ != null and coordsZ != ''">
+			coords_z = #{coordsZ},
+		</if>
+		<if test="boothType != null and boothType != ''">
+			booth_type = #{boothType},
+		</if>
+		<if test="boothTypeName != null and boothTypeName != ''">
+			booth_type_name = #{boothTypeName},
+		</if>
+		<if test="label != null and label != ''">
+			label = #{label},
+		</if>
+		last_updated_time = NOW()
+		WHERE unit_id = #{unitId}
+		AND device_mac =
+		#{deviceMac}
+	</update>
+	
+	<delete id="deleteDeviceBoothRelation">
+		delete from tb_wa_booth
+		WHERE unit_id = #{unitId}
+		AND device_mac = #{deviceMac}
+	</delete>
+</mapper>

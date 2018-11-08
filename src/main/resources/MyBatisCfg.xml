@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration  
+	PUBLIC "-//mybatis.org//DTD Config 3.0//EN"  
+	"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<properties resource="db.properties">
+	</properties>
+
+	<settings>
+		<setting name="callSettersOnNulls" value="true" />
+	</settings>
+
+	<typeAliases>
+		<typeAlias alias="Member" type="com.issmart.beacon.model.Member" />
+		<typeAlias alias="BeaconActiveInfo" type="com.issmart.beacon.model.BeaconActiveInfo" />
+		<typeAlias alias="BeaconActive" type="com.issmart.beacon.model.BeaconActive" />
+		<typeAlias alias="DeviceBaseInfo" type="com.issmart.device.model.DeviceBaseInfo" />
+		<typeAlias alias="RequestParamOfBoothDetails" type="com.issmart.device.model.RequestParamOfBoothDetails" />
+		<typeAlias alias="EventTemplate" type="com.issmart.device.model.EventTemplate" />
+		<typeAlias alias="DeviceConfigInfo" type="com.issmart.device.model.DeviceConfigInfo" />
+	</typeAliases>
+
+	<!-- 和spring整合后 environments配置将废除 -->
+	<environments default="development">
+		<environment id="development">
+			<!-- 使用jdbc事务管理 -->
+			<transactionManager type="JDBC" />
+			<!-- 数据库连接池 -->
+			<dataSource type="POOLED">
+				<property name="driver" value="${driver}" />
+				<property name="url" value="${url}" />
+				<property name="username" value="${username}" />
+				<property name="password" value="${password}" />
+			</dataSource>
+		</environment>
+	</environments>
+	
+	<mappers>
+		<mapper resource="com/issmart/beacon/mapper/BeaconMapper.xml" />
+		<mapper resource="com/issmart/beacon/mapper/MemberMapper.xml" />
+		<mapper resource="com/issmart/common/mapper/GetPressNumberMapper.xml" />
+		<mapper resource="com/issmart/common/mapper/OperatingTableMapper.xml" />
+		<mapper resource="com/issmart/common/mapper/TimerMapper.xml" />
+		<mapper resource="com/issmart/device/mapper/DeviceConfigMapper.xml" />
+		<mapper resource="com/issmart/device/mapper/DeviceMapper.xml" />
+	</mappers>
+</configuration>

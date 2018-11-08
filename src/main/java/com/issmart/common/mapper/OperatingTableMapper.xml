@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.issmart.common.dao.OperatingTableMapper">
+	<insert id="createTable">
+		CREATE TABLE ${tableName} (
+		  `id` int(11) NOT NULL AUTO_INCREMENT,
+		  `unit_id` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		  `device_mac` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		  `beacon_mac` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+		  `calculate_time` datetime DEFAULT CURRENT_TIMESTAMP,
+		  `calculate_time_stamp` int(15) DEFAULT NULL,
+		  `rssi` int(11) DEFAULT NULL,
+		  `time_minute` int(11) DEFAULT NULL,
+		  `created_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		  PRIMARY KEY (`id`,`calculate_time`),
+		  KEY `INDEX` (`unit_id`,`device_mac`,`beacon_mac`,`calculate_time_stamp`) USING BTREE
+		) ENGINE=InnoDB AUTO_INCREMENT=54999884 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+		PARTITION BY RANGE (to_days(calculate_time))
+		(   
+			<foreach collection="partitionList" item="item">
+			PARTITION ${item.name} VALUES LESS THAN (to_days(#{item.time})) ENGINE = InnoDB,
+			</foreach>
+			PARTITION pend VALUES less than maxvalue
+		);
+	</insert>
+	<select id="queryPartitionName" resultType="String">
+		SELECT partition_name
+		FROM information_schema.PARTITIONS
+		WHERE TABLE_NAME = #{tableName}
+		ORDER BY partition_name 
+	</select>
+</mapper>

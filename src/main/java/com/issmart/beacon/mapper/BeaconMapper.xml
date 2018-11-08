@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.issmart.beacon.dao.BeaconMapper">
+	<resultMap id="ActiveBaseResultMap" type="BeaconActive">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="member_name" property="memberName" jdbcType="VARCHAR" />
+		<result column="company_name" property="companyName" jdbcType="VARCHAR" />
+		<result column="postion_code" property="postionCode" jdbcType="VARCHAR" />
+		<result column="beacon_mac" property="beaconMac" jdbcType="VARCHAR" />
+		<result column="device_mac" property="deviceMac" jdbcType="VARCHAR" />
+		<result column="booth_name" property="boothName" jdbcType="VARCHAR" />
+		<result column="arrive_time" property="arriveTime" jdbcType="VARCHAR" />
+		<result column="leave_time" property="leaveTime" jdbcType="VARCHAR" />
+		<result column="leave_time_stamp" property="leaveTimeStamp" jdbcType="VARCHAR" />
+		<result column="stay_time" property="stayTime" jdbcType="INTEGER" />
+		<result column="unit" property="unit" jdbcType="INTEGER" />
+	</resultMap>
+	<resultMap id="ActiveInfoResultMap" type="BeaconActiveInfo">
+		<result column="contactId" property="contactId" jdbcType="INTEGER" />
+		<result column="memberId" property="memberId" jdbcType="INTEGER" />
+		<result column="memberName" property="memberName" jdbcType="VARCHAR" />
+		<result column="memberPhone" property="memberPhone" jdbcType="VARCHAR" />
+		<result column="memberEmail" property="memberEmail" jdbcType="VARCHAR" />
+		<result column="beaconMac" property="beaconMac" jdbcType="VARCHAR" />
+		<result column="companyName" property="companyName" jdbcType="VARCHAR" />
+		<result column="postionCode" property="postionCode" jdbcType="VARCHAR" />
+		<result column="region" property="region" jdbcType="VARCHAR" />
+		<result column="industry" property="industry" jdbcType="VARCHAR" />
+		<result column="boothTotal" property="boothTotal" jdbcType="INTEGER" />
+		<result column="boothRepeatTotal" property="boothRepeatTotal"
+			jdbcType="INTEGER" />
+		<result column="interactTotal" property="interactTotal"
+			jdbcType="INTEGER" />
+		<result column="durationTimeTotal" property="durationTimeTotal"
+			jdbcType="INTEGER" />
+		<result column="unitId" property="unitId" jdbcType="INTEGER" />
+		<result column="device_mac" property="deviceMac" jdbcType="VARCHAR" />
+		<result column="beacon_mac" property="beaconMac" jdbcType="VARCHAR" />
+		<result column="calculate_time_stamp" property="calculateTimeStamp"
+			jdbcType="BIGINT" />
+		<result column="booth_repeat_total" property="boothRepeatTotal"
+			jdbcType="BIGINT" />
+		<result column="score" property="score" jdbcType="BIGINT" />
+	</resultMap>
+
+	<select id="queryActiveScore" resultType="Integer">
+		SELECT
+		ifnull(MAX(active_score),0) FROM tb_report_visit_log_member_result
+		where unit_id
+		= #{unitId}
+	</select>
+
+	<select id="queryMemberActivesResult" resultMap="ActiveInfoResultMap">
+		SELECT unit_id as unitId, beacon_mac,contact_id as contactId,
+		member_id as memberId,member_name as memberName,company_name as
+		companyName,
+		postion_code as postionCode,industry,region,booth_total as
+		boothTotal,
+		booth_repeat_total as boothRepeatTotal,duration_time_total
+		as durationTimeTotal,score
+		FROM tb_report_visit_log_member_result
+		where unit_id = #{unitId}
+		ORDER BY score DESC,booth_total
+		DESC,duration_time_total DESC,booth_repeat_total DESC
+		<if test="pageNo != null and pageSize != null">
+			Limit #{pageNo},#{pageSize}
+		</if>
+	</select>
+
+	<!-- ****************************************************************** -->
+	<select id="queryPermissionLevel" resultType="String">
+		SELECT
+		permission_level FROM tb_report_permission
+		WHERE unit_id = #{unitId}
+	</select>
+
+	<select id="queryMemberActives" resultMap="ActiveInfoResultMap">
+		select DISTINCT
+		u.beacon_mac as beaconMac,
+		contact_id as contactId,
+		member_name as memberName,
+		member_id as memberId,
+		company_name as
+		companyName,
+		postion_code as postionCode,
+		industry,
+		city as region,
+		u.unit_id as unitId,
+		count(DISTINCT log.device_mac) as boothTotal,
+		count(log.device_mac) as durationTimeTotal
+		from tb_cm_member u
+		left join ${tableName} log on u.beacon_mac = log.beacon_mac AND u.unit_id
+		= log.unit_id
+		Where u.unit_id = #{unitId}
+		GROUP BY u.beacon_mac
+		Order BY
+		boothTotal DESC,durationTimeTotal DESC
+		<if test="pageNo != null and pageSize != null">
+			Limit #{pageNo},#{pageSize}
+		</if>
+	</select>
+	<select id="queryActive" resultMap="ActiveBaseResultMap">
+		select DISTINCT
+		log.device_mac,time_minute as stay_time,UNIX_TIMESTAMP(calculate_time) as leave_time_stamp,
+		b.booth_name,postion_code,company_name
+		from
+		tb_report_visit_log log
+		left
+		join tb_cm_member u on u.beacon_mac =
+		log.beacon_mac AND u.unit_id =
+		log.unit_id
+		left join tb_wa_booth b on
+		b.device_mac = log.device_mac AND
+		b.unit_id = log.unit_id
+		Where log.unit_id =#{unitId}
+		and log.beacon_mac
+		= #{beaconMac}
+		ORDER BY calculate_time,log.device_mac
+	</select>
+	<select id="queryActiveBoothRepeatTotal" resultMap="ActiveInfoResultMap">
+		select
+		DISTINCT device_mac,calculate_time_stamp,beacon_mac
+		from
+		${tableName}
+		Where unit_id =#{unitId}
+		ORDER BY device_mac,calculate_time_stamp
+	</select>
+	<select id="queryInterestedBooth" resultType="Map">
+		select b.booth_name
+		as maxStayTime
+		from tb_visit_activity_log log
+		left join tb_wa_booth
+		b on
+		b.device_mac = log.device_mac AND b.unit_id = log.unit
+		Where
+		log.unit =
+		#{unitId}
+		and log.beacon_mac = #{beaconMac}
+		Group by
+		log.device_mac
+		Order
+		by sum(stay_time) DESC
+		LIMIT 1
+	</select>
+	<select id="queryMemberNameByBeaconMac" resultMap="ActiveBaseResultMap">
+		select
+		beacon_mac,member_name
+		from tb_cm_member
+		Where unit_id = #{unitId}
+	</select>
+	<select id="getTotal" resultType="Integer">
+		select count(DISTINCT
+		beacon_mac)
+		from tb_report_visit_log
+		Where unit_id = #{unitId}
+	</select>
+	<select id="getDeviceMac" resultType="String">
+		select c.device_mac
+		from
+		tb_wa_beacon_calculate c
+		INNER join tb_cm_member m on c.unit =
+		m.unit_id and m.beacon_id = #{beaconId}
+		Where c.unit = #{unitId}
+		and
+		c.beacon_mac = m.beacon_mac
+		and UNIX_TIMESTAMP(window_end) BETWEEN
+		(UNIX_TIMESTAMP(NOW()) -10 - #{minutes} * 60) AND
+		(UNIX_TIMESTAMP(NOW()) + 10)
+		Order by c.window_start DESC,c.rssi
+		limit
+		0,1
+	</select>
+	<select id="queryMemberByNearBy" resultType="Map">
+		select DISTINCT
+		m.unit_id as unitId,m.beacon_id as beaconId,m.member_name as
+		memberName,
+		m.wechat_head_img_url as wechatHeadImgUrl,m.postion_code as
+		postionCode,min(c.rssi) as rssi
+		from tb_wa_beacon_calculate c
+		INNER join
+		tb_cm_member m on c.unit = m.unit_id and m.beacon_mac = c.beacon_mac
+		Where c.unit = #{unitId}
+		and c.device_mac = #{deviceMac}
+		and m.beacon_id
+		!= #{beaconId}
+		and c.rssi &lt;= #{rssi}
+		and UNIX_TIMESTAMP(window_end)
+		BETWEEN (UNIX_TIMESTAMP(NOW()) -10 - #{minutes} * 60) AND
+		(UNIX_TIMESTAMP(NOW()) + 10)
+		GROUP BY m.unit_id,m.beacon_id
+		,m.member_name,m.wechat_head_img_url,m.postion_code
+		Order by c.rssi
+	</select>
+	<select id="queryOverallIndicators" resultType="Map">
+		SELECT COUNT(DISTINCT log.beacon_mac) as activeUserNumber,
+		COUNT(log.beacon_mac) as interactionTotalNumber
+		from tb_sys_behavior_log log
+		where log.unit_id = #{unitId}
+	</select>
+	<select id="queryMemberNumber" resultType="Integer">
+		SELECT
+		COUNT(DISTINCT beacon_mac)
+		from tb_cm_member
+		where unit_id = #{unitId}
+	</select>
+	<select id="getBeaconTotal" resultType="Integer">
+		SELECT COUNT(DISTINCT
+		beacon_mac) from tb_cm_member
+		where unit_id = #{unitId}
+	</select>
+	<select id="queryInteractionAnalysis" resultType="Map">
+		SELECT
+		b.behavior_name behaviorName,
+		COUNT(DISTINCT log.beacon_mac) as
+		partInNumber,
+		COUNT(log.beacon_mac) as
+		effectiveInteractionNumber
+		from
+		tb_sys_behavior_log log
+		LEFT JOIN tb_sys_behavior b ON log.behavior_id
+		= b.id
+		where
+		log.unit_id = #{unitId}
+		GROUP BY behavior_id
+	</select>
+</mapper>
