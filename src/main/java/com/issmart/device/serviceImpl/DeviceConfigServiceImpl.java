@@ -34,7 +34,7 @@ public class DeviceConfigServiceImpl implements DeviceConfigService {
 		int i = deviceConfigMapper.deleteEventTemplate(eventTemplate.getUnitId());
 		int count = deviceConfigMapper.insertEventTemplate(eventTemplate);
 		if (i == 0) {
-			createTable(context, deviceConfigMapper, eventTemplate);
+			//createTable(context, deviceConfigMapper, eventTemplate);
 		}
 		if (i != 0 && count == 0) {
 			session.rollback();
@@ -51,8 +51,11 @@ public class DeviceConfigServiceImpl implements DeviceConfigService {
 	 * @param deviceConfigDao
 	 * @param eventTemplate
 	 */
-	private static void createTable(Context context, DeviceConfigMapper deviceConfigMapper,
-			EventTemplate eventTemplate) {
+	@Override
+	public void createTable(Context context, EventTemplate eventTemplate) {
+		// 获得会话对象
+		SqlSession session = MyBatisUtil.getSqlSession(false);
+		DeviceConfigMapper deviceConfigMapper = session.getMapper(DeviceConfigMapper.class);
 		String tableName = "tb_report_visit_log_" + eventTemplate.getUnitId();
 		int days = (int) ((eventTemplate.getEndTimeStamp() - eventTemplate.getStartTimeStamp()) / (3600 * 24));
 		if (days <= 10) {
@@ -74,20 +77,21 @@ public class DeviceConfigServiceImpl implements DeviceConfigService {
 				partitionInfoList.add(map);
 			}
 			try {
-				deviceConfigMapper.createTable(tableName, partitionInfoList);
 				int i = deviceConfigMapper.insertPermissionLevel(eventTemplate.getUnitId(), "S");
-				context.getLogger().info(eventTemplate.getUnitId() + "新建数据表成功");
+				deviceConfigMapper.createTable(tableName, partitionInfoList);
+				System.out.println(i);
+				//context.getLogger().info(eventTemplate.getUnitId() + "新建数据表成功");
 				if (i != 0) {
-					context.getLogger().info(eventTemplate.getUnitId() + "新建数据报表权限信息成功");
+					//context.getLogger().info(eventTemplate.getUnitId() + "新建数据报表权限信息成功");
 				} else {
-					context.getLogger().info(eventTemplate.getUnitId() + "新建数据报表权限信息失败");
+					//context.getLogger().info(eventTemplate.getUnitId() + "新建数据报表权限信息失败");
 				}
 			} catch (Exception e) {
-				context.getLogger().info(eventTemplate.getUnitId() + "新建数据表失败");
+				//context.getLogger().info(eventTemplate.getUnitId() + "新建数据表失败");
 				e.printStackTrace();
 			}
 		} else {
-			context.getLogger().info(eventTemplate.getUnitId() + "新建数据表失败,分区数大于10");
+			//context.getLogger().info(eventTemplate.getUnitId() + "新建数据表失败,分区数大于10");
 		}
 	}
 
@@ -165,29 +169,29 @@ public class DeviceConfigServiceImpl implements DeviceConfigService {
 		return deviceConfigMapper.deleteDeviceBoothRelation(deviceConfig);
 	}
 
-	public static void main(String[] args) {
-		int days = (int) ((1541210330l - 1540519130l) / (3600 * 24));
-		System.out.println(days);
-		if (days <= 10) {
-			Date date = new Date();
-			date.setTime(1540519130l * 1000);
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(date);
-			List<Map<String, Object>> partitionInfoList = new ArrayList<Map<String, Object>>();
-			for (int i = 0; i < days; i++) {
-				cal.add(Calendar.DATE, 1);
-				Map<String, Object> map = new HashMap<>();
-				if((cal.get(Calendar.MONTH)+1) < 10) {
-					map.put("name", "p0" + (cal.get(Calendar.MONTH)+1) + cal.get(Calendar.DATE));
-					map.put("time", cal.get(Calendar.YEAR) + "-0" + (cal.get(Calendar.MONTH)+1) + "-" + cal.get(Calendar.DATE));
-				} else {
-					map.put("name", "p" + (cal.get(Calendar.MONTH)+1) + cal.get(Calendar.DATE));
-					map.put("time", cal.get(Calendar.YEAR) + "-" + (cal.get(Calendar.MONTH)+1) + "-" + cal.get(Calendar.DATE));
-				}
-				
-				partitionInfoList.add(map);
-			}
-			System.out.println(partitionInfoList);
-		}
-	}
+//	public static void main(String[] args) {
+//		int days = (int) ((1541210330l - 1540519130l) / (3600 * 24));
+//		System.out.println(days);
+//		if (days <= 10) {
+//			Date date = new Date();
+//			date.setTime(1540519130l * 1000);
+//			Calendar cal = Calendar.getInstance();
+//			cal.setTime(date);
+//			List<Map<String, Object>> partitionInfoList = new ArrayList<Map<String, Object>>();
+//			for (int i = 0; i < days; i++) {
+//				cal.add(Calendar.DATE, 1);
+//				Map<String, Object> map = new HashMap<>();
+//				if((cal.get(Calendar.MONTH)+1) < 10) {
+//					map.put("name", "p0" + (cal.get(Calendar.MONTH)+1) + cal.get(Calendar.DATE));
+//					map.put("time", cal.get(Calendar.YEAR) + "-0" + (cal.get(Calendar.MONTH)+1) + "-" + cal.get(Calendar.DATE));
+//				} else {
+//					map.put("name", "p" + (cal.get(Calendar.MONTH)+1) + cal.get(Calendar.DATE));
+//					map.put("time", cal.get(Calendar.YEAR) + "-" + (cal.get(Calendar.MONTH)+1) + "-" + cal.get(Calendar.DATE));
+//				}
+//				
+//				partitionInfoList.add(map);
+//			}
+//			System.out.println(partitionInfoList);
+//		}
+//	}
 }
