@@ -11,7 +11,7 @@
 	<select id="getActiveNumberMapperByDeviceMac" resultType="Map">
 		select b.device_mac as deviceMac,count(log.beacon_mac) as activeNumber
 		from tb_sys_behavior_log log
-		INNER JOIN tb_wa_booth b ON log.device_mac = b.device_mac and log.unit_id = b.unit_id
+		INNER JOIN device_booth_view b ON log.device_mac = b.device_mac and log.unit_id = b.unit_id
 		where log.unit_id = #{unitId}
 		AND behavior_id = #{behaviorId} 
 		GROUP BY b.device_mac

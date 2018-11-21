@@ -42,11 +42,11 @@
 	<select id="queryDeviceHot" resultMap="BaseResultMap">
 		select b.unit_id as
 		unitId,log.device_mac,device_name,booth_location as device_address,booth_id,
-		booth_name,b.created_time,
+		booth_name,
 		count(log.device_mac) as duration,
 		(count(log.device_mac) / count(DISTINCT log.beacon_mac)) as durationAvg
 		from ${tableName} log 
-		left join tb_wa_booth b 
+		left join device_booth_view b 
 		on b.device_mac = log.device_mac and b.unit_id = log.unit_id
 		where b.unit_id = #{unitId}
 		GROUP BY b.device_mac
@@ -56,13 +56,13 @@
 	
 	<select id="queryBoothIds" resultType="Integer">
 		select DISTINCT booth_id
-		from tb_wa_booth
+		from device_booth_view
 		where unit_id = #{unitId}
 	</select>
 	
 	<select id="queryBemberTotalByBoothId" resultMap="BaseResultMap">
 		select bo.booth_id as booth_id, COUNT(DISTINCT log.beacon_mac) as bemberTotal
-		from tb_wa_booth bo 
+		from device_booth_view bo 
 		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
 		where log.unit_id = #{unitId}
 		GROUP BY bo.booth_id
@@ -71,7 +71,7 @@
 	<select id="queryVisitLogByBoothId" resultMap="BaseResultMap">
 		select DISTINCT log.device_mac as deviceMac,log.beacon_mac as beaconMac,log.calculate_time_stamp
 		as calculateTimeStamp,bo.booth_id as booth_id
-		from tb_wa_booth bo 
+		from device_booth_view bo 
 		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
 		where bo.unit_id = #{unitId}
 		and bo.booth_id in
@@ -275,6 +275,7 @@
 		left join ${tableName} log on u.beacon_mac = log.beacon_mac AND u.unit_id
 		= log.unit_id
 		Where u.unit_id = #{unitId}
+		AND u.beacon_mac is not null
 		GROUP BY u.beacon_mac
 		Order BY
 		boothTotal DESC,durationTimeTotal DESC
@@ -290,7 +291,7 @@
 		join tb_cm_member u on u.beacon_mac =
 		log.beacon_mac AND u.unit_id =
 		log.unit_id
-		left join tb_wa_booth b on
+		left join device_booth_view b on
 		b.device_mac = log.device_mac AND
 		b.unit_id = log.unit_id
 		Where log.unit_id =#{unitId}
@@ -310,7 +311,7 @@
 		select b.booth_name
 		as maxStayTime
 		from tb_visit_activity_log log
-		left join tb_wa_booth
+		left join device_booth_view
 		b on
 		b.device_mac = log.device_mac AND b.unit_id = log.unit
 		Where

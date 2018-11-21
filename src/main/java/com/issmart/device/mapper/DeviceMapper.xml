@@ -57,7 +57,7 @@
 		select count(DISTINCT c.beacon_mac) as count
 		from tb_wa_beacon_calculate c
 		INNER JOIN tb_cm_member m ON c.unit = m.unit_id AND c.beacon_mac = m.beacon_mac
-		INNER JOIN tb_wa_booth b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
+		INNER JOIN device_booth_view b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
 		where c.unit = #{unitId}
 		<if test="boothId != null">
 		AND b.booth_id = #{boothId}
@@ -86,7 +86,7 @@
 	
 	<select id="queryBestActive" resultType="Map">
 		select b.booth_name as name,count(log.beacon_mac) as value
-		from tb_wa_booth b 
+		from device_booth_view b 
 		LEFT JOIN tb_sys_behavior_log log ON log.device_mac = b.device_mac and log.unit_id = b.unit_id AND log.behavior_id = 1
 		where b.unit_id = #{unitId}
 		GROUP BY name
@@ -110,7 +110,7 @@
 	
 	<select id="queryBemberTotalByBoothId" resultMap="BaseResultMap">
 		select bo.booth_id as booth_id, COUNT(DISTINCT log.beacon_mac) as bemberTotal
-		from tb_wa_booth bo 
+		from device_booth_view bo 
 		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
 		where log.unit_id = #{unitId}
 		<if test="boothId != null and boothId != ''">
@@ -122,7 +122,7 @@
 	<select id="queryVisitLogByBoothId" resultMap="BaseResultMap">
 		select DISTINCT log.device_mac as deviceMac,log.beacon_mac as beaconMac,log.calculate_time_stamp
 		as calculateTimeStamp,bo.booth_id as booth_id
-		from tb_wa_booth bo 
+		from device_booth_view bo 
 		LEFT JOIN ${tableName} log ON log.unit_id = bo.unit_id and log.device_mac = bo.device_mac
 		where bo.unit_id = #{unitId}
 		and bo.booth_id in
@@ -134,7 +134,7 @@
 	
 	<select id="queryBoothIds" resultType="Integer">
 		select DISTINCT booth_id
-		from tb_wa_booth
+		from device_booth_view
 		where unit_id = #{unitId}
 	</select>
 
@@ -241,7 +241,7 @@
 		select count(DISTINCT c.beacon_mac) as count
 		from tb_wa_beacon_calculate c
 		INNER JOIN tb_cm_member m ON c.unit = m.unit_id AND c.beacon_mac = m.beacon_mac
-		INNER JOIN tb_wa_booth b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
+		INNER JOIN device_booth_view b ON c.unit = b.unit_id AND c.device_mac = b.device_mac
 		where c.unit = #{unitId}
 		and c.device_mac = #{deviceMac}
 		and UNIX_TIMESTAMP(window_end) &gt;= #{startTimeStamp}
@@ -250,7 +250,7 @@
 	
 	<select id="queryDeviceMacs" resultType="String">
 		select device_mac
-		from tb_wa_booth
+		from device_booth_view
 		WHERE booth_id = #{boothId}
 	</select>
 </mapper>

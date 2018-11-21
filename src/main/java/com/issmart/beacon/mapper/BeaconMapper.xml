@@ -109,7 +109,7 @@
 		join tb_cm_member u on u.beacon_mac =
 		log.beacon_mac AND u.unit_id =
 		log.unit_id
-		left join tb_wa_booth b on
+		left join device_booth_view b on
 		b.device_mac = log.device_mac AND
 		b.unit_id = log.unit_id
 		Where log.unit_id =#{unitId}
@@ -129,7 +129,7 @@
 		select b.booth_name
 		as maxStayTime
 		from tb_visit_activity_log log
-		left join tb_wa_booth
+		left join device_booth_view
 		b on
 		b.device_mac = log.device_mac AND b.unit_id = log.unit
 		Where

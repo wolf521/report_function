@@ -4,6 +4,9 @@
 	<resultMap id="modelMap" type="Member">
 		<id column="id" property="id" jdbcType="INTEGER" />
 		<result column="member_name" property="memberName" />
+		<result column="unit_id" property="unitId" />
+		<result column="beacon_id" property="beaconId" />
+		<result column="beacon_mac" property="beaconMac" />
 	</resultMap>
 	<sql id="modelColumns">
 		id, member_id, contact_id, attendee_id, unit_id,
@@ -19,6 +22,18 @@
 		unit_id =
 		#{unitId} AND enable = '1'
 		group by unit_id;
+	</select>
+	<select id="findMemberListByUnitId" resultMap="modelMap">
+		select beacon_id,beacon_mac
+		from
+		tb_bg_beacon
+		where unit_id = #{unitId}
+		AND beacon_id not in(
+		Select beacon_id from tb_cm_member
+		WHERE unit_id = #{unitId}
+		AND beacon_id is not NULL
+		AND `enable` = '1')
+		AND enable = '1'
 	</select>
 
 	<select id="findById" resultMap="modelMap">
@@ -40,17 +55,19 @@
 	<insert id="inserts">
 		INSERT INTO
 		tb_cm_member
-		(member_id, contact_id, unit_id,
-		beacon_mac,beacon_id, member_name, 
+		(member_id, contact_id, attendee_id,unit_id,
+		open_id,beacon_mac,beacon_id, member_name, 
+		member_gender,member_email,member_phone,
 		wechat_head_img_url, company_name,
-		postion_code, industry, city)
+		postion_code, industry,department, city)
 		VALUES
 		<foreach item="item" index="index" collection="list"
 			separator=",">
-			(#{item.memberId}, #{item.contactId}, #{unitId},
-			#{item.beaconMac}, #{item.beaconId}, #{item.memberName},
+			(#{item.memberId}, #{item.contactId}, #{item.attendeeId}, #{unitId},
+			#{item.openId},#{item.beaconMac}, #{item.beaconId}, #{item.memberName},
+			#{item.memberGender},#{item.memberEmail},#{item.memberPhone},
 			#{item.wechatHeadImgUrl}, #{item.companyName}, #{item.postionCode},
-			#{item.industry}, #{item.city})
+			#{item.industry},#{item.department}, #{item.city})
 		</foreach>
 	</insert>
 
@@ -58,6 +75,15 @@
 		UPDATE
 		tb_cm_member
 		<set>
+			<if test="contactId != null and contactId != ''">
+				contact_id = #{contactId},
+			</if>
+			<if test="attendeeId != null and attendeeId != ''">
+				attendee_id = #{attendeeId},
+			</if>
+			<if test="openId != null and openId != ''">
+				open_id = #{openId},
+			</if>
 			<if test="beaconId != null and beaconId != ''">
 				beacon_id = #{beaconId},
 			</if>
@@ -66,6 +92,15 @@
 			</if>
 			<if test="memberName != null and memberName != ''">
 				member_name = #{memberName},
+			</if>
+			<if test="memberGender != null and memberGender != ''">
+				member_gender = #{memberGender},
+			</if>
+			<if test="memberEmail != null and memberEmail != ''">
+				member_email = #{memberEmail},
+			</if>
+			<if test="memberPhone != null and memberPhone != ''">
+				member_phone = #{memberPhone},
 			</if>
 			<if test="wechatHeadImgUrl != null and wechatHeadImgUrl != ''">
 				wechat_head_img_url = #{wechatHeadImgUrl},
@@ -78,6 +113,9 @@
 			</if>
 			<if test="industry != null and industry != ''">
 				industry = #{industry},
+			</if>
+			<if test="department != null and department != ''">
+				department = #{department},
 			</if>
 			<if test="city != null and city != ''">
 				city = #{city},
@@ -101,6 +139,9 @@
 			<if test="attendeeId != null and attendeeId != ''">
 				attendee_id = #{attendeeId},
 			</if>
+			<if test="openId != null and openId != ''">
+				open_id = #{openId},
+			</if>
 			<if test="unitId != null and unitId != ''">
 				unit_id = #{unitId},
 			</if>
@@ -113,6 +154,15 @@
 			<if test="memberName != null and memberName != ''">
 				member_name = #{memberName},
 			</if>
+			<if test="memberGender != null and memberGender != ''">
+				member_gender = #{memberGender},
+			</if>
+			<if test="memberEmail != null and memberEmail != ''">
+				member_email = #{memberEmail},
+			</if>
+			<if test="memberPhone != null and memberPhone != ''">
+				member_phone = #{memberPhone},
+			</if>
 			<if test="wechatHeadImgUrl != null and wechatHeadImgUrl != ''">
 				wechat_head_img_url = #{wechatHeadImgUrl},
 			</if>
@@ -121,6 +171,9 @@
 			</if>
 			<if test="postionCode != null and postionCode != ''">
 				postion_code = #{postionCode},
+			</if>
+			<if test="department != null and department != ''">
+				department = #{department},
 			</if>
 			<if test="industry != null and industry != ''">
 				industry = #{industry},

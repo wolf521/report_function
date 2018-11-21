@@ -17,6 +17,14 @@ public interface MemberMapper {
 	public String getBeaconMacArrayToString(@Param("unitId") String unitId);
 
 	public Member findById(@Param("id") Integer id);
+	
+	/**
+	 * 查询出当前展会所有未绑定用户beacon信息
+	 * 
+	 * @param unitId
+	 * @return
+	 */
+	public List<Member> findMemberListByUnitId(@Param("unitId") String unitId);
 
 	/**
 	 * 全量更新member信息

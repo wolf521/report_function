@@ -1,7 +1,5 @@
 package com.issmart.beacon.serviceImpl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +40,20 @@ public class MemberServiceImpl implements MemberService {
 		SqlSession session = MyBatisUtil.getSqlSession(false);
 		try {
 			MemberMapper memberDao = session.getMapper(MemberMapper.class);
+			List<Member> beaconList = memberDao.findMemberListByUnitId(unitId);
+			for(Map<String, Object> map:members) {
+				boolean flag = true;
+				for(Member member:beaconList) {
+					if(map.get("beaconId") != null && map.get("beaconId").equals(member.getBeaconId())) {
+						map.put("beaconMac", member.getBeaconMac());
+						flag = false;
+						break;
+					} 
+				}
+				if(flag) {
+					map.put("beaconMac", null);
+				}
+			}
 			Integer pointdelAllNum = 0;
 			Integer pointInsertsNum = 0;
 			// 先删除已存在用户
@@ -63,26 +75,6 @@ public class MemberServiceImpl implements MemberService {
 		}
 		return point;
 	}
-	
-	public static void main(String[] args) {
-		Map<String, Object> param = new HashMap<>();
-		List<Map<String, Object>> list = new ArrayList<>();
-		Map<String, Object> m = new HashMap<>();
-		Map<String, Object> m1 = new HashMap<>();
-		Map<String, Object> m2 = new HashMap<>();
-		m.put("memberId", 123);
-		m1.put("memberId", 321);
-		m2.put("memberId", 3321);
-		m.put("beaconMac", "dsfsdf");
-		m1.put("beaconMac", "dssssfsdf");
-		m2.put("beaconMac", "dsf33fsdf");
-		list.add(m);
-		list.add(m1);
-		list.add(m2);
-		param.put("members", list);
-		param.put("unitId", "309");
-		System.out.println(new MemberServiceImpl().updateIncrMembers(param));
-	}
 
 	@Override
 	public boolean updateIncrMembers(Map<String, Object> param) {
@@ -94,6 +86,14 @@ public class MemberServiceImpl implements MemberService {
 		SqlSession session = MyBatisUtil.getSqlSession(false);
 		try {
 			MemberMapper memberDao = session.getMapper(MemberMapper.class);
+			List<Member> beaconList = memberDao.findMemberListByUnitId(unitId);
+			for(Map<String, Object> map:members) {
+				for(Member member:beaconList) {
+					if(map.get("beaconId") != null && map.get("beaconId").equals(member.getBeaconId())) {
+						map.put("beaconMac", member.getBeaconMac());
+					} 
+				}
+			}	
 			if (members != null && members.size() != 0) {
 				for(Map<String, Object> m:members) {
 					m.put("unitId", unitId);
